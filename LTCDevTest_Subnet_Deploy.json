@@ -1,0 +1,123 @@
+{
+   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+   "contentVersion": "1.0.0.0",
+   "parameters": { 
+       "environmentName": {
+           "type": "string",
+           "defaultValue": "test",
+           "metadata": {
+               "description": "Enter an environment name that will be used to identify resources"
+           }
+       },
+       "feSubnetPrefix": {
+           "type": "string",
+           "defaultValue": null,
+           "metadata": {
+               "description": "Enter the FrontEnd subnet address prefix, eg 10.0.0.0/24"
+           }
+       },
+       "appSubnetPrefix": {
+           "type": "string",
+           "defaultValue": null,
+           "metadata": {
+               "description": "Enter the Application subnet address prefix, eg 10.0.0.0/24"
+           }
+       },
+       "beSubnetPrefix": {
+           "type": "string",
+           "defaultValue": null,
+           "metadata": {
+               "description": "Enter the BackEnd subnet address prefix, eg 10.0.0.0/24"
+           }
+       }
+    },
+   "variables": { 
+        "baseRgName": "RGACUDevTest",
+        "baseVnetName": "vnetACUDevTest",
+        "vnetID": "[resourceId(variables('baseRgName'), 'Microsoft.Network/virtualNetworks',variables('baseVnetName'))]",
+        "feSubnetName": "[concat(parameters('environmentName'), 'FrontEnd')]",
+        "appSubnetName": "[concat(parameters('environmentName'), 'Application')]",
+        "beSubnetName": "[concat(parameters('environmentName'), 'BackEnd')]",
+        "feNsgName": "[concat('nsg', parameters('environmentName'), 'FrontEnd')]",
+        "appNsgName": "[concat('nsg', parameters('environmentName'), 'Application')]",
+        "beNsgName": "[concat('nsg', parameters('environmentName'), 'BackEnd')]"
+    },
+   "resources": [ 
+       {
+           "comments": "FrontEnd NSG",
+           "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('feNsgName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "Web_Access",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "[parameters('feSubnetPrefix')]",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+       },
+       {
+           "comments": "Application NSG",
+           "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('appNsgName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "Web_Access",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "[parameters('feSubnetPrefix')]",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+       },
+       {
+           "comments": "BackEnd NSG",
+           "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('beNsgName')]",
+            "apiVersion": "2016-03-30",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "Web_Access",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "[parameters('feSubnetPrefix')]",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+       },
+    ],
+   "outputs": {  }
+}

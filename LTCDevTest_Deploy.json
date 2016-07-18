@@ -1,0 +1,379 @@
+{
+   "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+   "contentVersion": "1.0.0.0",
+   "parameters": {
+       "environmentName": {
+           "type": "string",
+           "defaultValue": "test",
+           "metadata": {
+               "description": "Enter an environment name that will be used to identify resources"
+           }
+       },
+       "appServerName": {
+           "type": "string",
+           "defaultValue": null,
+           "metadata": {
+               "description": "Enter a name for the Application server that will run Moodle"
+           }
+       },
+       "appServerSize": {
+           "defaultValue": "Standard_D3_v2",
+            "type": "string",
+            "allowedValues": [
+                "Standard_D1",
+                "Standard_D2",
+                "Standard_D3",
+                "Standard_D4",
+                "Standard_D11",
+                "Standard_D12",
+                "Standard_D13",
+                "Standard_D14",
+                "Standard_DS1",
+                "Standard_DS2",
+                "Standard_DS3",
+                "Standard_DS4",
+                "Standard_DS11",
+                "Standard_DS12",
+                "Standard_DS13",
+                "Standard_DS14",
+                "Standard_GS1",
+                "Standard_GS2",
+                "Standard_GS3",
+                "Standard_GS4",
+                "Standard_GS4",
+                "Standard_GS5"
+            ]
+       },
+       "nginxServerName": {
+           "type": "string",
+           "defaultValue": null,
+           "metadata": {
+               "description": "Enter a name for the NGINX server"
+           }
+       },
+       "nginxServerSize": {
+           "defaultValue": "Standard_D1_v2",
+            "type": "string",
+            "allowedValues": [
+                "Standard_D1",
+                "Standard_D2",
+                "Standard_D3",
+                "Standard_D4",
+                "Standard_D11",
+                "Standard_D12",
+                "Standard_D13",
+                "Standard_D14",
+                "Standard_DS1",
+                "Standard_DS2",
+                "Standard_DS3",
+                "Standard_DS4",
+                "Standard_DS11",
+                "Standard_DS12",
+                "Standard_DS13",
+                "Standard_DS14",
+                "Standard_GS1",
+                "Standard_GS2",
+                "Standard_GS3",
+                "Standard_GS4",
+                "Standard_GS4",
+                "Standard_GS5"
+            ]
+       },
+       "dbServerName": {
+           "type": "string",
+           "defaultValue": null,
+           "metadata": {
+               "description": "Enter a name for the database server that will run MariaDB"
+           }
+       },
+       "dbServerSize": {
+           "defaultValue": "Standard_DS3",
+            "type": "string",
+            "allowedValues": [
+                "Standard_D1",
+                "Standard_D2",
+                "Standard_D3",
+                "Standard_D4",
+                "Standard_D11",
+                "Standard_D12",
+                "Standard_D13",
+                "Standard_D14",
+                "Standard_DS1",
+                "Standard_DS2",
+                "Standard_DS3",
+                "Standard_DS4",
+                "Standard_DS11",
+                "Standard_DS12",
+                "Standard_DS13",
+                "Standard_DS14",
+                "Standard_GS1",
+                "Standard_GS2",
+                "Standard_GS3",
+                "Standard_GS4",
+                "Standard_GS4",
+                "Standard_GS5"
+            ]
+       },
+       "adminUserName": {
+           "type": "string",
+           "defaultValue": "acuadmin",
+           "metadata": {
+               "description": "Enter the name of the administrator user for this VM"
+           }
+       },
+       "adminPassword": {
+           "type": "securestring",
+           "defaultValue": null,
+           "metadata": {
+               "description": "Enter a password for the administrator user"
+           }
+       }
+    },
+   "variables": { 
+        "baseRgName": "RGACUDevTest",
+        "baseVnetName": "vnetACUDevTest",
+        "vnetID": "[resourceId(variables('baseRgName'), 'Microsoft.Network/virtualNetworks',variables('baseVnetName'))]",
+        "stdStorageAccountName": "[concat('strstd', parameters('environmentName'))",
+        "stdStorageAccountType": "Standard_LRS",
+        "premStorageAccountName": "[concat('strprem', parameters('environmentName'))",
+        "premStorageAccountType": "Premium_LRS",
+        "vmStorageAccountContainerName": "vhds",
+        "imagePublisher": "OpenLogic",
+        "imageOffer": "CentOS",
+        "imageSku": "7.2",
+        "feSubnetName": "[concat(parameters('environmentName'), 'FrontEnd')]",
+        "appSubnetName": "[concat(parameters('environmentName'), 'Application')]",
+        "beSubnetName": "[concat(parameters('environmentName'), 'BackEnd')]",
+        "feNsgName": "[concat('nsg', parameters('environmentName'), 'FrontEnd')]",
+        "appNsgName": "[concat('nsg', parameters('environmentName'), 'Application')]",
+        "beNsgName": "[concat('nsg', parameters('environmentName'), 'BackEnd')]",
+        "nginxServerOsDiskName": "[concat('OSDisk-', parameters('nginxServerName'))]",
+        "nginxServerNicName": "[concat('NIC01-', parameters('nginxServerName'))]",
+        "nginxPublicIPAddressName": "[concat('PIP01-', parameters('nginxServerName'))]",
+        "nginxPublicIPAddressType": "Dynamic",
+        "appServerOsDiskName": "[concat('OSDisk-', parameters('appServerName'))]",
+        "appServerNicName": "[concat('NIC01-', parameters('appServerName'))]",
+        "appPublicIPAddressName": "[concat('PIP01-', parameters('appServerName'))]",
+        "appPublicIPAddressType": "Dynamic",
+        "dbServerOsDiskName": "[concat('OSDisk-', parameters('dbServerName'))]",
+        "dbServerDatabaseDiskName:": "[concat(parameters('dbServerName'), 'ssd-01')]",
+        "dbServerStagingDiskName:": "[concat(parameters('dbServerName'), '-staging-01')]",
+        "dbServerNicName": "[concat('NIC01-', parameters('dbServerName'))]",
+        "dbPublicIPAddressName": "[concat('PIP01-', parameters('dbServerName'))]",
+        "dbPublicIPAddressType": "Dynamic"        
+    },
+   "resources": [ 
+       {
+           "comments": "Premium storage account",
+           "type": "Microsoft.Storage/storageAccounts",
+           "name": "[variables('premStorageAccountName')]",
+           "apiVersion": "2015-06-15",
+           "location": "[resourceGroup().location]",
+           "properties": {
+               "accountType": "[variables('premStorageAccountType')]"
+           }
+       },
+       {
+           "comments": "Standard storage account",
+           "type": "Microsoft.Storage/storageAccounts",
+           "name": "[variables('stdStorageAccountName')]",
+           "apiVersion": "2015-06-15",
+           "location": "[resourceGroup().location]",
+           "properties": {
+               "accountType": "[variables('stdStorageAccountType')]"
+           }
+       },
+       {
+           "comments": "Application Server NIC",
+           "type": "Microsoft.Network/networkInterfaces",
+           "name": "[variables('appServerNicName')]",
+           "location": "[resourceGroup().location]",
+           "apiVersion": "2016-03-30",
+           "properties": {
+               "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]"
+                            },
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            }
+                        }
+                    }
+                ],
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": null
+                }
+           }
+       },
+       {    
+            "comments": "Application Server VM",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[parameters('appServerName')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('appServerSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('imagePublisher')]",
+                        "offer": "[variables('imageOffer')]",
+                        "sku": "[variables('imageSku')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[variables('appServerOsDiskName')]",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat('https', '://', variables('stdStorageAccountName'), '.blob.core.windows.net', concat('/vhds/', parameters('appServerName'), uniqueString(resourceGroup().id), '.vhd'))]"
+                        },
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[parameters('appServerName')]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": [],
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('appServerNicName'))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('stdStorageAccountName'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', parameters('appNicName'))]"
+            ]
+       },
+       {    
+            "comments": "NGINX Server VM",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[parameters('nginxServerName')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('nginxServerSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('imagePublisher')]",
+                        "offer": "[variables('imageOffer')]",
+                        "sku": "[variables('imageSku')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[variables('nginxServerOsDiskName')]",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat('https', '://', variables('stdStorageAccountName'), '.blob.core.windows.net', concat('/vhds/', parameters('nginxServerName'), uniqueString(resourceGroup().id), '.vhd'))]"
+                        },
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[parameters('nginxServerName')]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": [],
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nginxServerNicName'))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('stdStorageAccountName'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', parameters('nginxNicName'))]"
+            ]
+       },
+       {    
+            "comments": "Database Server VM",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[parameters('dbServerName')]",
+            "apiVersion": "2015-06-15",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('dbServerSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('imagePublisher')]",
+                        "offer": "[variables('imageOffer')]",
+                        "sku": "[variables('imageSku')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[variables('dbServerOsDiskName')]",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat('https', '://', variables('stdStorageAccountName'), '.blob.core.windows.net', concat('/vhds/', parameters('dbServerName'), uniqueString(resourceGroup().id), '.vhd'))]"
+                        },
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": [
+                        {
+                            "name": "[variables('dbServerDatabaseDiskName')]",
+                            "lun": 0,
+                            "createOption": "Empty",
+                            "vhd": {
+                                "uri": "[concat('https', '://', variables('premStorageAccountName'), '.blob.core.windows.net', concat('/vhds/', parameters('dbServerDatabaseDiskName'), '.vhd'))]"
+                            }
+                        },
+                        {
+                            "name": "[variables('dbServerStagingDiskName')]",
+                            "lun": 1,
+                            "createOption": "Empty",
+                            "vhd": {
+                                "uri": "[concat('https', '://', variables('stdStorageAccountName'), '.blob.core.windows.net', concat('/vhds/', parameters('dbServerStagingDiskName'), '.vhd'))]"
+                            }
+                        }                        
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[parameters('dbServerName')]",
+                    "adminUsername": "[parameters('adminUserName')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": [],
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('dbServerNicName'))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', parameters('stdStorageAccountName'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', parameters('dbNicName'))]"
+            ]
+       }
+    ],
+   "outputs": {  }
+}
